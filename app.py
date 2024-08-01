@@ -55,29 +55,27 @@ def recommend_drinks(liked_ingredients, model, data, top_n=5):
     recommendations = data.sort_values(by='similarity', ascending=False).head(top_n)
     return recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'instructions', 'similarity']]
 
-# Streamlit app layout with animated input fields
+# Streamlit app layout with sequential input fields
 st.title("Cocktail Recommendation System")
 
-# Animated input for ingredients you like
-with st.spinner("Please wait..."):
-    time.sleep(1)
+# Input for ingredients you like
 liked_ingredients = st.text_input("Enter ingredients you like (comma-separated):", "vodka, lime, mint")
-liked_ingredients = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
+liked_ingredients_list = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
 
-if liked_ingredients:
-    with st.spinner("Loading next input..."):
-        time.sleep(1)
+if liked_ingredients_list:
+    time.sleep(1)
+    # Input for flavors you like
     liked_flavors = st.text_input("Enter flavors you like (comma-separated):", "sweet, sour, spicy")
-    liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
+    liked_flavors_list = [flavor.strip() for flavor in liked_flavors.split(",")]
 
-if liked_flavors:
-    with st.spinner("Loading next input..."):
-        time.sleep(1)
+if liked_flavors_list:
+    time.sleep(1)
+    # Input for drinks you're curious about
     curious_drinks_input = st.text_area("Enter ingredients for drinks you're curious about, one line per drink:")
-    curious_drinks = [line.split(",") for line in curious_drinks_input.split("\n") if line]
+    curious_drinks_list = [line.split(",") for line in curious_drinks_input.split("\n") if line]
 
 if st.button("Get Recommendations"):
-    recommendations = recommend_drinks(liked_ingredients, model, space_cocktail)
+    recommendations = recommend_drinks(liked_ingredients_list, model, space_cocktail)
     st.write("### Recommendations based on ingredients you like:")
     for index, row in recommendations.iterrows():
         st.write(f"**{row['name']}**")
@@ -86,7 +84,7 @@ if st.button("Get Recommendations"):
         st.write(f"Similarity: {row['similarity']:.2f}")
         st.write("---")
     
-    flavor_recommendations = recommend_drinks(liked_flavors, model, space_cocktail)
+    flavor_recommendations = recommend_drinks(liked_flavors_list, model, space_cocktail)
     st.write("### Recommendations based on flavors you like:")
     for index, row in flavor_recommendations.iterrows():
         st.write(f"**{row['name']}**")
@@ -95,9 +93,9 @@ if st.button("Get Recommendations"):
         st.write(f"Similarity: {row['similarity']:.2f}")
         st.write("---")
     
-    if curious_drinks:
+    if curious_drinks_list:
         st.write("### Recommendations for drinks you're curious about:")
-        for drink_ingredients in curious_drinks:
+        for drink_ingredients in curious_drinks_list:
             drink_recommendations = recommend_drinks(drink_ingredients, model, space_cocktail)
             for index, row in drink_recommendations.iterrows():
                 st.write(f"**{row['name']}**")
@@ -105,3 +103,4 @@ if st.button("Get Recommendations"):
                 st.write(f"Instructions: {row['instructions']}")
                 st.write(f"Similarity: {row['similarity']:.2f}")
                 st.write("---")
+
