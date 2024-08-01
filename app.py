@@ -9,6 +9,7 @@ import time
 def load_data():
     file_path = 'space_cocktail.csv'  # Adjust the path to your CSV file
     return pd.read_csv(file_path)
+
 cocktails = load_data()
 
 # Check if data is loaded
@@ -62,32 +63,48 @@ if 'step' not in st.session_state:
 # Streamlit app layout with sequential input fields
 st.title("Cocktail Recommendation System")
 
-# Step 1: Input for ingredients you like
+# Step 1: Input for cocktails you like
 if st.session_state.step == 1:
-    liked_ingredients = st.text_input("Enter ingredients you like (comma-separated):", "vodka, lime, mint")
-    if st.button("Submit Ingredients"):
-        st.session_state.liked_ingredients = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
-        st.session_state.step = 2
-        st.experimental_rerun()
+    with st.form(key='cocktails_form'):
+        liked_cocktails = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
+        submit_cocktails = st.form_submit_button(label='Submit Cocktails')
+        if submit_cocktails:
+            st.session_state.liked_cocktails = [cocktail.strip() for cocktail in liked_cocktails.split(",")]
+            st.session_state.step = 2
+            st.experimental_rerun()
 
-# Step 2: Input for flavors you like
+# Step 2: Input for ingredients you like
 if st.session_state.step == 2:
-    liked_flavors = st.text_input("Enter flavors you like (comma-separated):", "sweet, sour, spicy")
-    if st.button("Submit Flavors"):
-        st.session_state.liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
-        st.session_state.step = 3
-        st.experimental_rerun()
+    with st.form(key='ingredients_form'):
+        liked_ingredients = st.text_input("Enter ingredients you like (comma-separated):", "vodka, lime, mint")
+        submit_ingredients = st.form_submit_button(label='Submit Ingredients')
+        if submit_ingredients:
+            st.session_state.liked_ingredients = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
+            st.session_state.step = 3
+            st.experimental_rerun()
 
-# Step 3: Input for drinks you're curious about
+# Step 3: Input for flavors you like
 if st.session_state.step == 3:
-    curious_drinks_input = st.text_area("Enter ingredients for drinks you're curious about, one line per drink:")
-    if st.button("Submit Curious Drinks"):
-        st.session_state.curious_drinks = [line.split(",") for line in curious_drinks_input.split("\n") if line]
-        st.session_state.step = 4
-        st.experimental_rerun()
+    with st.form(key='flavors_form'):
+        liked_flavors = st.text_input("Enter flavors you like (comma-separated):", "sweet, sour, spicy")
+        submit_flavors = st.form_submit_button(label='Submit Flavors')
+        if submit_flavors:
+            st.session_state.liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
+            st.session_state.step = 4
+            st.experimental_rerun()
 
-# Step 4: Display recommendations
+# Step 4: Input for drinks you're curious about
 if st.session_state.step == 4:
+    with st.form(key='curious_drinks_form'):
+        curious_drinks_input = st.text_area("Enter ingredients for drinks you're curious about, one line per drink:")
+        submit_curious_drinks = st.form_submit_button(label='Submit Curious Drinks')
+        if submit_curious_drinks:
+            st.session_state.curious_drinks = [line.split(",") for line in curious_drinks_input.split("\n") if line]
+            st.session_state.step = 5
+            st.experimental_rerun()
+
+# Step 5: Display recommendations
+if st.session_state.step == 5:
     recommendations = recommend_drinks(st.session_state.liked_ingredients, model, space_cocktail)
     st.write("### Recommendations based on ingredients you like:")
     for index, row in recommendations.iterrows():
