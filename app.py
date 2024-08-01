@@ -10,7 +10,6 @@ def load_data():
     file_path = 'space_cocktail.csv'  # Adjust the path to your CSV file
     return pd.read_csv(file_path)
 
-cocktails = load_data()
 
 # Preprocess data
 def clean_text(text):
@@ -57,12 +56,38 @@ st.write("Enter ingredients you like, and get cocktail recommendations:")
 liked_ingredients = st.text_input("Enter ingredients you like (comma-separated):", "vodka, lime, mint")
 liked_ingredients = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
 
+liked_flavors = st.text_input("Enter flavors you like (comma-separated):", "sweet, sour, spicy")
+liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
+
+curious_drinks = st.text_input("Enter three drinks you're curious about (comma-separated):", "mojito, margarita, none")
+curious_drinks = [drink.strip() for drink in curious_drinks.split(",")]
+
 if st.button("Get Recommendations"):
     recommendations = recommend_drinks(liked_ingredients, model, space_cocktail)
-    st.write("### Recommendations:")
+    st.write("### Recommendations based on ingredients you like:")
     for index, row in recommendations.iterrows():
         st.write(f"**{row['name']}**")
         st.write(f"Ingredients: {row['ingredient-1']}, {row['ingredient-2']}, {row['ingredient-3']}, {row['ingredient-4']}, {row['ingredient-5']}, {row['ingredient-6']}")
         st.write(f"Instructions: {row['instructions']}")
         st.write(f"Similarity: {row['similarity']:.2f}")
         st.write("---")
+    
+    flavor_recommendations = recommend_drinks(liked_flavors, model, space_cocktail)
+    st.write("### Recommendations based on flavors you like:")
+    for index, row in flavor_recommendations.iterrows():
+        st.write(f"**{row['name']}**")
+        st.write(f"Ingredients: {row['ingredient-1']}, {row['ingredient-2']}, {row['ingredient-3']}, {row['ingredient-4']}, {row['ingredient-5']}, {row['ingredient-6']}")
+        st.write(f"Instructions: {row['instructions']}")
+        st.write(f"Similarity: {row['similarity']:.2f}")
+        st.write("---")
+    
+    if "none" not in curious_drinks:
+        for drink in curious_drinks:
+            st.write(f"### Recommendations for trying `{drink}`:")
+            drink_recommendations = recommend_drinks(liked_ingredients + liked_flavors, model, space_cocktail)
+            for index, row in drink_recommendations.iterrows():
+                st.write(f"**{row['name']}**")
+                st.write(f"Ingredients: {row['ingredient-1']}, {row['ingredient-2']}, {row['ingredient-3']}, {row['ingredient-4']}, {row['ingredient-5']}, {row['ingredient-6']}")
+                st.write(f"Instructions: {row['instructions']}")
+                st.write(f"Similarity: {row['similarity']:.2f}")
+                st.write("---")
