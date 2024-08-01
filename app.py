@@ -63,6 +63,9 @@ if 'step' not in st.session_state:
 # Streamlit app layout with sequential input fields
 st.title("Cocktail Recommendation System")
 
+def go_to_next_step():
+    st.session_state.step += 1
+
 # Step 1: Input for cocktails you like
 if st.session_state.step == 1:
     with st.form(key='cocktails_form'):
@@ -70,8 +73,7 @@ if st.session_state.step == 1:
         submit_cocktails = st.form_submit_button(label='Submit Cocktails')
         if submit_cocktails:
             st.session_state.liked_cocktails = [cocktail.strip() for cocktail in liked_cocktails.split(",")]
-            st.session_state.step = 2
-            st.experimental_rerun()
+            go_to_next_step()
 
 # Step 2: Input for ingredients you like
 if st.session_state.step == 2:
@@ -80,8 +82,7 @@ if st.session_state.step == 2:
         submit_ingredients = st.form_submit_button(label='Submit Ingredients')
         if submit_ingredients:
             st.session_state.liked_ingredients = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
-            st.session_state.step = 3
-            st.experimental_rerun()
+            go_to_next_step()
 
 # Step 3: Input for flavors you like
 if st.session_state.step == 3:
@@ -90,8 +91,7 @@ if st.session_state.step == 3:
         submit_flavors = st.form_submit_button(label='Submit Flavors')
         if submit_flavors:
             st.session_state.liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
-            st.session_state.step = 4
-            st.experimental_rerun()
+            go_to_next_step()
 
 # Step 4: Input for drinks you're curious about
 if st.session_state.step == 4:
@@ -100,8 +100,7 @@ if st.session_state.step == 4:
         submit_curious_drinks = st.form_submit_button(label='Submit Curious Drinks')
         if submit_curious_drinks:
             st.session_state.curious_drinks = [line.split(",") for line in curious_drinks_input.split("\n") if line]
-            st.session_state.step = 5
-            st.experimental_rerun()
+            go_to_next_step()
 
 # Step 5: Display recommendations
 if st.session_state.step == 5:
