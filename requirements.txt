@@ -75,3 +75,4 @@ mypy>=1.5.1
 Sphinx>=7.1.0
 mkdocs>=1.6.0
 cryptography>=41.0.2
+scipy==1.9.3  # Specific version that includes triu
