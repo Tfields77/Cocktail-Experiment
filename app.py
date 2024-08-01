@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from gensim.models import Word2Vec
 from sklearn.metrics.pairwise import cosine_similarity
-
+import time
 # Load data
 @st.cache
 def load_data():
