@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 def load_data():
     file_path = 'space_cocktail.csv'  # Adjust the path to your CSV file
     return pd.read_csv(file_path)
-
+cocktails = load_data()
 
 # Preprocess data
 def clean_text(text):
