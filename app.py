@@ -55,27 +55,40 @@ def recommend_drinks(liked_ingredients, model, data, top_n=5):
     recommendations = data.sort_values(by='similarity', ascending=False).head(top_n)
     return recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'instructions', 'similarity']]
 
+# Initialize session state
+if 'step' not in st.session_state:
+    st.session_state.step = 1
+
 # Streamlit app layout with sequential input fields
 st.title("Cocktail Recommendation System")
 
-# Input for ingredients you like
-liked_ingredients = st.text_input("Enter ingredients you like (comma-separated):", "vodka, lime, mint")
-liked_ingredients_list = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
+# Step 1: Input for ingredients you like
+if st.session_state.step == 1:
+    liked_ingredients = st.text_input("Enter ingredients you like (comma-separated):", "vodka, lime, mint")
+    if st.button("Submit Ingredients"):
+        st.session_state.liked_ingredients = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
+        st.session_state.step = 2
+        st.experimental_rerun()
 
-if liked_ingredients_list:
-    time.sleep(1)
-    # Input for flavors you like
+# Step 2: Input for flavors you like
+if st.session_state.step == 2:
     liked_flavors = st.text_input("Enter flavors you like (comma-separated):", "sweet, sour, spicy")
-    liked_flavors_list = [flavor.strip() for flavor in liked_flavors.split(",")]
+    if st.button("Submit Flavors"):
+        st.session_state.liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
+        st.session_state.step = 3
+        st.experimental_rerun()
 
-if liked_flavors_list:
-    time.sleep(1)
-    # Input for drinks you're curious about
+# Step 3: Input for drinks you're curious about
+if st.session_state.step == 3:
     curious_drinks_input = st.text_area("Enter ingredients for drinks you're curious about, one line per drink:")
-    curious_drinks_list = [line.split(",") for line in curious_drinks_input.split("\n") if line]
+    if st.button("Submit Curious Drinks"):
+        st.session_state.curious_drinks = [line.split(",") for line in curious_drinks_input.split("\n") if line]
+        st.session_state.step = 4
+        st.experimental_rerun()
 
-if st.button("Get Recommendations"):
-    recommendations = recommend_drinks(liked_ingredients_list, model, space_cocktail)
+# Step 4: Display recommendations
+if st.session_state.step == 4:
+    recommendations = recommend_drinks(st.session_state.liked_ingredients, model, space_cocktail)
     st.write("### Recommendations based on ingredients you like:")
     for index, row in recommendations.iterrows():
         st.write(f"**{row['name']}**")
@@ -84,7 +97,7 @@ if st.button("Get Recommendations"):
         st.write(f"Similarity: {row['similarity']:.2f}")
         st.write("---")
     
-    flavor_recommendations = recommend_drinks(liked_flavors_list, model, space_cocktail)
+    flavor_recommendations = recommend_drinks(st.session_state.liked_flavors, model, space_cocktail)
     st.write("### Recommendations based on flavors you like:")
     for index, row in flavor_recommendations.iterrows():
         st.write(f"**{row['name']}**")
@@ -93,9 +106,9 @@ if st.button("Get Recommendations"):
         st.write(f"Similarity: {row['similarity']:.2f}")
         st.write("---")
     
-    if curious_drinks_list:
+    if st.session_state.curious_drinks:
         st.write("### Recommendations for drinks you're curious about:")
-        for drink_ingredients in curious_drinks_list:
+        for drink_ingredients in st.session_state.curious_drinks:
             drink_recommendations = recommend_drinks(drink_ingredients, model, space_cocktail)
             for index, row in drink_recommendations.iterrows():
                 st.write(f"**{row['name']}**")
@@ -103,4 +116,3 @@ if st.button("Get Recommendations"):
                 st.write(f"Instructions: {row['instructions']}")
                 st.write(f"Similarity: {row['similarity']:.2f}")
                 st.write("---")
-
