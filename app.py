@@ -11,6 +11,12 @@ def load_data():
     return pd.read_csv(file_path)
 cocktails = load_data()
 
+# Check if data is loaded
+if cocktails is not None:
+    st.write("Data loaded successfully")
+else:
+    st.error("Failed to load data")
+
 # Preprocess data
 def clean_text(text):
     if isinstance(text, str):
@@ -49,18 +55,26 @@ def recommend_drinks(liked_ingredients, model, data, top_n=5):
     recommendations = data.sort_values(by='similarity', ascending=False).head(top_n)
     return recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'instructions', 'similarity']]
 
-# Streamlit app layout
+# Streamlit app layout with animated input fields
 st.title("Cocktail Recommendation System")
-st.write("Enter ingredients you like, and get cocktail recommendations:")
 
+# Animated input for ingredients you like
+with st.spinner("Please wait..."):
+    time.sleep(1)
 liked_ingredients = st.text_input("Enter ingredients you like (comma-separated):", "vodka, lime, mint")
 liked_ingredients = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
 
-liked_flavors = st.text_input("Enter flavors you like (comma-separated):", "sweet, sour, spicy")
-liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
+if liked_ingredients:
+    with st.spinner("Loading next input..."):
+        time.sleep(1)
+    liked_flavors = st.text_input("Enter flavors you like (comma-separated):", "sweet, sour, spicy")
+    liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
 
-curious_drinks = st.text_input("Enter three drinks you're curious about (comma-separated):", "mojito, margarita, none")
-curious_drinks = [drink.strip() for drink in curious_drinks.split(",")]
+if liked_flavors:
+    with st.spinner("Loading next input..."):
+        time.sleep(1)
+    curious_drinks_input = st.text_area("Enter ingredients for drinks you're curious about, one line per drink:")
+    curious_drinks = [line.split(",") for line in curious_drinks_input.split("\n") if line]
 
 if st.button("Get Recommendations"):
     recommendations = recommend_drinks(liked_ingredients, model, space_cocktail)
@@ -81,10 +95,10 @@ if st.button("Get Recommendations"):
         st.write(f"Similarity: {row['similarity']:.2f}")
         st.write("---")
     
-    if "none" not in curious_drinks:
-        for drink in curious_drinks:
-            st.write(f"### Recommendations for trying `{drink}`:")
-            drink_recommendations = recommend_drinks(liked_ingredients + liked_flavors, model, space_cocktail)
+    if curious_drinks:
+        st.write("### Recommendations for drinks you're curious about:")
+        for drink_ingredients in curious_drinks:
+            drink_recommendations = recommend_drinks(drink_ingredients, model, space_cocktail)
             for index, row in drink_recommendations.iterrows():
                 st.write(f"**{row['name']}**")
                 st.write(f"Ingredients: {row['ingredient-1']}, {row['ingredient-2']}, {row['ingredient-3']}, {row['ingredient-4']}, {row['ingredient-5']}, {row['ingredient-6']}")
