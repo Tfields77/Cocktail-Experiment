@@ -109,31 +109,45 @@ if st.session_state.step == 4:
 
 # Step 5: Display recommendations
 if st.session_state.step == 5:
-    recommendations = recommend_drinks(st.session_state.liked_ingredients, model, space_cocktail)
-    st.write("### Recommendations based on ingredients you like:")
-    for index, row in recommendations.iterrows():
-        st.write(f"**{row['name']}**")
-        st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-        st.write(f"Instructions: {row['instructions']}")
-        st.write(f"Similarity: {row['similarity']:.2f}")
-        st.write("---")
+    st.write("### Recommendations based on your preferences:")
+    st.write("You can click through the tabs to see recommendations based on the different inputs you provided.")
     
-    flavor_recommendations = recommend_drinks(st.session_state.liked_flavors, model, space_cocktail)
-    st.write("### Recommendations based on flavors you like:")
-    for index, row in flavor_recommendations.iterrows():
-        st.write(f"**{row['name']}**")
-        st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-        st.write(f"Instructions: {row['instructions']}")
-        st.write(f"Similarity: {row['similarity']:.2f}")
-        st.write("---")
+    tab1, tab2, tab3 = st.tabs(["Liked Ingredients", "Liked Flavors", "Curious Drinks"])
     
-    if st.session_state.curious_drinks:
-        st.write("### Recommendations for drinks you're curious about:")
-        for drink_ingredients in st.session_state.curious_drinks:
-            drink_recommendations = recommend_drinks(drink_ingredients, model, space_cocktail)
-            for index, row in drink_recommendations.iterrows():
-                st.write(f"**{row['name']}**")
-                st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-                st.write(f"Instructions: {row['instructions']}")
-                st.write(f"Similarity: {row['similarity']:.2f}")
-                st.write("---")
+    with tab1:
+        recommendations = recommend_drinks(st.session_state.liked_ingredients, model, space_cocktail)
+        st.write("#### Based on ingredients you like:")
+        for index, row in recommendations.iterrows():
+            st.write(f"**{row['name']}**")
+            st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
+            st.write(f"Instructions: {row['instructions']}")
+            st.write(f"Similarity: {row['similarity']:.2f}")
+            st.write("---")
+    
+    with tab2:
+        flavor_recommendations = recommend_drinks(st.session_state.liked_flavors, model, space_cocktail)
+        st.write("#### Based on flavors you like:")
+        for index, row in flavor_recommendations.iterrows():
+            st.write(f"**{row['name']}**")
+            st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
+            st.write(f"Instructions: {row['instructions']}")
+            st.write(f"Similarity: {row['similarity']:.2f}")
+            st.write("---")
+    
+    with tab3:
+        if st.session_state.curious_drinks:
+            st.write("#### Recommendations for drinks you're curious about:")
+            for drink_ingredients in st.session_state.curious_drinks:
+                drink_recommendations = recommend_drinks(drink_ingredients, model, space_cocktail)
+                for index, row in drink_recommendations.iterrows():
+                    st.write(f"**{row['name']}**")
+                    st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
+                    st.write(f"Instructions: {row['instructions']}")
+                    st.write(f"Similarity: {row['similarity']:.2f}")
+                    st.write("---")
+    
+    st.write("### How it works:")
+    st.write("1. **Liked Ingredients**: Shows recommendations based on the ingredients you like.")
+    st.write("2. **Liked Flavors**: Shows recommendations based on the flavors you like.")
+    st.write("3. **Curious Drinks**: Shows recommendations based on the ingredients of the drinks you are curious about.")
+    st.write("You can submit your preferences in any of the tabs and combine them to get more refined recommendations.")
