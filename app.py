@@ -24,6 +24,9 @@ def clean_text(text):
         return text.strip().lower()
     return text
 
+# Fill NaN values with a placeholder, e.g., ''
+cocktails = cocktails.fillna('')
+
 space_cocktail = cocktails.applymap(lambda x: clean_text(x))
 
 # Train word2vec model
@@ -48,7 +51,9 @@ def get_recipe_vector(ingredients, model, vector_size):
 
 def recommend_drinks(liked_ingredients, model, data, top_n=5):
     liked_vector = get_recipe_vector(liked_ingredients, model, model.vector_size)
-    data['recipe_vector'] = data.apply(lambda row: get_recipe_vector(row[['ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6']].dropna().tolist(), model, model.vector_size), axis=1)
+    data['recipe_vector'] = data.apply(lambda row: get_recipe_vector(
+        [row[col] for col in ['ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6'] if row[col] != ''], 
+        model, model.vector_size), axis=1)
     
     similarities = data['recipe_vector'].apply(lambda vec: cosine_similarity(liked_vector, vec.reshape(1, -1))[0][0])
     data['similarity'] = similarities
@@ -108,7 +113,7 @@ if st.session_state.step == 5:
     st.write("### Recommendations based on ingredients you like:")
     for index, row in recommendations.iterrows():
         st.write(f"**{row['name']}**")
-        st.write(f"Ingredients: {row['ingredient-1']}, {row['ingredient-2']}, {row['ingredient-3']}, {row['ingredient-4']}, {row['ingredient-5']}, {row['ingredient-6']}")
+        st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
         st.write(f"Instructions: {row['instructions']}")
         st.write(f"Similarity: {row['similarity']:.2f}")
         st.write("---")
@@ -117,7 +122,7 @@ if st.session_state.step == 5:
     st.write("### Recommendations based on flavors you like:")
     for index, row in flavor_recommendations.iterrows():
         st.write(f"**{row['name']}**")
-        st.write(f"Ingredients: {row['ingredient-1']}, {row['ingredient-2']}, {row['ingredient-3']}, {row['ingredient-4']}, {row['ingredient-5']}, {row['ingredient-6']}")
+        st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
         st.write(f"Instructions: {row['instructions']}")
         st.write(f"Similarity: {row['similarity']:.2f}")
         st.write("---")
@@ -128,7 +133,7 @@ if st.session_state.step == 5:
             drink_recommendations = recommend_drinks(drink_ingredients, model, space_cocktail)
             for index, row in drink_recommendations.iterrows():
                 st.write(f"**{row['name']}**")
-                st.write(f"Ingredients: {row['ingredient-1']}, {row['ingredient-2']}, {row['ingredient-3']}, {row['ingredient-4']}, {row['ingredient-5']}, {row['ingredient-6']}")
+                st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
                 st.write(f"Instructions: {row['instructions']}")
                 st.write(f"Similarity: {row['similarity']:.2f}")
                 st.write("---")
