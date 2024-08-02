@@ -61,7 +61,7 @@ if 'step' not in st.session_state:
     st.session_state.step = 1
 
 # Streamlit app layout with sequential input fields
-st.title("Cocktail Recommendation System")
+st.title("The Cocktail-Experiment")
 
 def go_to_next_step():
     st.session_state.step += 1
@@ -96,7 +96,7 @@ if st.session_state.step == 3:
 # Step 4: Input for drinks you're curious about
 if st.session_state.step == 4:
     with st.form(key='curious_drinks_form'):
-        curious_drinks_input = st.text_area("Enter ingredients for drinks you're curious about, one line per drink:")
+        curious_drinks_input = st.text_area("Enter ingredients for drinks you're curious about, one line per drink. Put commas after each ingredient:")
         submit_curious_drinks = st.form_submit_button(label='Submit Curious Drinks')
         if submit_curious_drinks:
             st.session_state.curious_drinks = [line.split(",") for line in curious_drinks_input.split("\n") if line]
