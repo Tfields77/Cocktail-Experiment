@@ -1,9 +1,9 @@
-import streamlit as st
-import pandas as pd
 import numpy as np
+import pandas as pd
 from gensim.models import Word2Vec
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import time
+import streamlit as st
 # Load data
 @st.cache
 def load_data():
