@@ -29,7 +29,7 @@ space_cocktail = cocktails.applymap(lambda x: clean_text(x))
 @st.cache_resource
 def train_word2vec(data):
     sentences = data.apply(lambda row: ' '.join([str(row[col]) for col in data.columns if 'ingredient' in col]).split(), axis=1)
-    model = Word2Vec(sentences, vector_size=100, window=5, min_count=1, sg=0)
+    model = Word2Vec(sentences, vector_size=200, window=10, min_count=1, sg=1)  # Adjusted parameters
     return model
 
 model = train_word2vec(space_cocktail)
@@ -51,11 +51,15 @@ def get_recipe_vector(ingredients, model, tfidf_dict, vector_size):
     count = 0
     for ingredient in ingredients:
         if ingredient in model.wv.key_to_index:
-            weight = tfidf_dict.get(ingredient, 0)
+            weight = tfidf_dict.get(ingredient, 1)
             recipe_vector += model.wv[ingredient] * weight
             count += weight
     if count != 0:
         recipe_vector /= count
+    # Normalize the vector
+    norm = np.linalg.norm(recipe_vector)
+    if norm != 0:
+        recipe_vector = recipe_vector / norm
     return recipe_vector
 
 def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=5):
