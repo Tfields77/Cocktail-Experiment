@@ -12,19 +12,6 @@ def load_data():
 
 cocktails = load_data()
 
-# Check if data is loaded
-if cocktails is not None:
-    st.write("Data loaded successfully")
-else:
-    st.error("Failed to load data")
-
-# Preprocess data
-def clean_text(text):
-    if isinstance(text, str):
-        return text.strip().lower()
-    return text
-
-
 if cocktails is not None:
     st.write("Data loaded successfully")
 else:
@@ -39,6 +26,7 @@ cocktails = cocktails.fillna('')
 space_cocktail = cocktails.applymap(lambda x: clean_text(x))
 
 # Train Word2Vec model
+@st.cache_resource
 def train_word2vec(data):
     sentences = data.apply(lambda row: ' '.join([str(row[col]) for col in data.columns if 'ingredient' in col]).split(), axis=1)
     model = Word2Vec(sentences, vector_size=100, window=5, min_count=1, sg=0)
@@ -79,8 +67,11 @@ def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=5):
     similarities = data['recipe_vector'].apply(lambda vec: cosine_similarity(liked_vector, vec.reshape(1, -1))[0][0])
     data['similarity'] = similarities
     
-    recommendations = data.sort_values(by='similarity', ascending=False).head(top_n)
-    return recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'instructions', 'similarity']]
+    # Get top_n similar drinks and shuffle the results
+    top_recommendations = data.sort_values(by='similarity', ascending=False).head(top_n)
+    top_recommendations = top_recommendations.sample(frac=1).reset_index(drop=True)
+    
+    return top_recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'instructions', 'similarity']]
 
 # Streamlit app layout with tabs for input and recommendations
 st.title("The Cocktail-Experiment")
