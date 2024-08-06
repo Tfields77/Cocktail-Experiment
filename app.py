@@ -24,12 +24,21 @@ def clean_text(text):
         return text.strip().lower()
     return text
 
-# Fill NaN values with a placeholder, e.g., ''
-cocktails = cocktails.fillna('')
 
+if cocktails is not None:
+    st.write("Data loaded successfully")
+else:
+    st.error("Failed to load data")
+
+def clean_text(text):
+    if isinstance(text, str):
+        return text.strip().lower()
+    return text
+
+cocktails = cocktails.fillna('')
 space_cocktail = cocktails.applymap(lambda x: clean_text(x))
 
-# Train word2vec model
+# Train Word2Vec model
 def train_word2vec(data):
     sentences = data.apply(lambda row: ' '.join([str(row[col]) for col in data.columns if 'ingredient' in col]).split(), axis=1)
     model = Word2Vec(sentences, vector_size=100, window=5, min_count=1, sg=0)
@@ -37,23 +46,35 @@ def train_word2vec(data):
 
 model = train_word2vec(space_cocktail)
 
-# Vectorize recipes
-def get_recipe_vector(ingredients, model, vector_size):
+# Compute TF-IDF weights
+def compute_tfidf(data):
+    ingredients = data.apply(lambda row: ' '.join([str(row[col]) for col in data.columns if 'ingredient' in col]), axis=1)
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(ingredients)
+    feature_names = vectorizer.get_feature_names_out()
+    tfidf_dict = dict(zip(feature_names, tfidf_matrix.sum(axis=0).A1))
+    return vectorizer, tfidf_dict
+
+vectorizer, tfidf_dict = compute_tfidf(space_cocktail)
+
+# Vectorize recipes with TF-IDF and Word2Vec
+def get_recipe_vector(ingredients, model, tfidf_dict, vector_size):
     recipe_vector = np.zeros((1, vector_size))
     count = 0
     for ingredient in ingredients:
         if ingredient in model.wv.key_to_index:
-            recipe_vector += model.wv[ingredient]
-            count += 1
+            weight = tfidf_dict.get(ingredient, 0)
+            recipe_vector += model.wv[ingredient] * weight
+            count += weight
     if count != 0:
         recipe_vector /= count
     return recipe_vector
 
-def recommend_drinks(liked_ingredients, model, data, top_n=5):
-    liked_vector = get_recipe_vector(liked_ingredients, model, model.vector_size)
+def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=5):
+    liked_vector = get_recipe_vector(liked_ingredients, model, tfidf_dict, model.vector_size)
     data['recipe_vector'] = data.apply(lambda row: get_recipe_vector(
         [row[col] for col in ['ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6'] if row[col] != ''], 
-        model, model.vector_size), axis=1)
+        model, tfidf_dict, model.vector_size), axis=1)
     
     similarities = data['recipe_vector'].apply(lambda vec: cosine_similarity(liked_vector, vec.reshape(1, -1))[0][0])
     data['similarity'] = similarities
@@ -73,7 +94,7 @@ with tab1:
         submit_cocktails = st.form_submit_button(label='Submit Cocktails')
         if submit_cocktails:
             st.session_state.liked_cocktails = [cocktail.strip() for cocktail in liked_cocktails.split(",")]
-            recommendations = recommend_drinks(st.session_state.liked_cocktails, model, space_cocktail)
+            recommendations = recommend_drinks(st.session_state.liked_cocktails, model, tfidf_dict, space_cocktail)
             st.write("### Recommendations based on cocktails you like:")
             for index, row in recommendations.iterrows():
                 st.write(f"**{row['name']}**")
@@ -89,7 +110,7 @@ with tab2:
         submit_ingredients = st.form_submit_button(label='Submit Ingredients')
         if submit_ingredients:
             st.session_state.liked_ingredients = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
-            recommendations = recommend_drinks(st.session_state.liked_ingredients, model, space_cocktail)
+            recommendations = recommend_drinks(st.session_state.liked_ingredients, model, tfidf_dict, space_cocktail)
             st.write("### Recommendations based on ingredients you like:")
             for index, row in recommendations.iterrows():
                 st.write(f"**{row['name']}**")
@@ -105,7 +126,7 @@ with tab3:
         submit_flavors = st.form_submit_button(label='Submit Flavors')
         if submit_flavors:
             st.session_state.liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
-            recommendations = recommend_drinks(st.session_state.liked_flavors, model, space_cocktail)
+            recommendations = recommend_drinks(st.session_state.liked_flavors, model, tfidf_dict, space_cocktail)
             st.write("### Recommendations based on flavors you like:")
             for index, row in recommendations.iterrows():
                 st.write(f"**{row['name']}**")
@@ -117,12 +138,14 @@ with tab3:
 with tab4:
     st.header("Drinks You're Curious About")
     with st.form(key='curious_drinks_form'):
+        liked_cocktails = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
         curious_drinks_input = st.text_area("Enter ingredients for drinks you're curious about, one line per drink. Put commas after each ingredient:")
         submit_curious_drinks = st.form_submit_button(label='Submit Curious Drinks')
         if submit_curious_drinks:
+            st.session_state.liked_cocktails = [cocktail.strip() for cocktail in liked_cocktails.split(",")]
             st.session_state.curious_drinks = [line.split(",") for line in curious_drinks_input.split("\n") if line]
             for drink_ingredients in st.session_state.curious_drinks:
-                drink_recommendations = recommend_drinks(drink_ingredients, model, space_cocktail)
+                drink_recommendations = recommend_drinks(drink_ingredients, model, tfidf_dict, space_cocktail)
                 st.write(f"### Recommendations for drink with ingredients: {', '.join(drink_ingredients)}")
                 for index, row in drink_recommendations.iterrows():
                     st.write(f"**{row['name']}**")
