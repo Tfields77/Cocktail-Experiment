@@ -57,6 +57,7 @@ fastapi>=0.98.0
 # Image Processing
 opencv-python>=4.8.0.74
 Pillow>=9.5.0
+pytesseract>=0.3.10
 
 # Additional Visualization Tools
 altair>=5.0.1
