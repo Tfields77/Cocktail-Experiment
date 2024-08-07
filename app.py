@@ -99,6 +99,11 @@ def extract_text_from_image(image):
     text = pytesseract.image_to_string(image)
     return text
 
+# Filter dataset based on liked cocktails
+def filter_dataset(cocktails, liked_cocktails):
+    filtered_cocktails = cocktails[cocktails['name'].isin(liked_cocktails)]
+    return filtered_cocktails
+
 # Streamlit app layout
 st.title("The Cocktail-Experiment")
 
@@ -169,6 +174,5 @@ if submit:
             st.write(f"Instructions: {rec['instructions']}")
             st.write(f"Similarity: {rec['similarity']:.2f}")
             st.write("---")
-
 
 
