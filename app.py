@@ -113,6 +113,7 @@ st.title("The Cocktail-Experiment")
 st.header("Enter Cocktails You Like")
 liked_cocktails_input = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
 submit_cocktails = st.button(label='Submit Cocktails')
+
 if submit_cocktails:
     liked_cocktails = [cocktail.strip() for cocktail in liked_cocktails_input.split(",")]
     temporary_dataset = filter_dataset(space_cocktail, liked_cocktails)
