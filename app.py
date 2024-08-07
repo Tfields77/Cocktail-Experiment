@@ -102,8 +102,14 @@ def parse_menu_text(menu_text):
         menu_items.append(current_item)
     
     menu_df = pd.DataFrame(menu_items)
-    menu_df[['ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6']] = menu_df['ingredients'].str.split(',', expand=True)
-    menu_df.drop(columns=['ingredients'], inplace=True)
+    # Handle cases where there might be more or fewer than six ingredients
+    max_ingredients = 6
+    ingredients_split = menu_df['ingredients'].str.split(',', expand=True).iloc[:, :max_ingredients]
+    for i in range(max_ingredients):
+        if i not in ingredients_split.columns:
+            ingredients_split[i] = None
+    ingredients_split.columns = [f'ingredient-{i+1}' for i in range(max_ingredients)]
+    menu_df = pd.concat([menu_df.drop(columns=['ingredients']), ingredients_split], axis=1)
     return menu_df
 
 # Filter dataset based on liked cocktails
@@ -152,6 +158,7 @@ if submit_button:
                 st.write(f"Instructions: {rec['instructions']}")
                 st.write(f"Similarity: {rec['similarity']:.2f}")
                 st.write("---")
+
 
 
 
