@@ -1,92 +1,100 @@
-import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import streamlit as st
-import pytesseract
+import pandas as pd
 from PIL import Image
-import os
+import pytesseract
+import re
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
 
-# Define your function to parse menu from image
-def parse_menu(image_path):
-    menu_text = pytesseract.image_to_string(Image.open(image_path))
-    menu_items = [item.strip() for item in menu_text.split('\n') if item.strip()]
-    
+# Load the cocktail dataset
+space_cocktail = pd.read_csv('/mnt/data/space_cocktail.csv')
+
+def parse_menu_text(menu_text):
+    menu_items = []
+    for item in menu_text.split('\n'):
+        item = item.strip()
+        if item and item[0].isalpha():  # Only consider lines that start with a letter
+            menu_items.append(item)
+    return menu_items
+
+def create_menu_dataframe(menu_items):
     menu_data = {
-        "name": [],
-        "ingredient-1": [],
-        "ingredient-2": [],
-        "ingredient-3": [],
-        "ingredient-4": [],
-        "ingredient-5": [],
-        "ingredient-6": [],
-        "ingredient-7": []
+        'name': [],
+        'ingredient-1': [],
+        'ingredient-2': [],
+        'ingredient-3': [],
+        'ingredient-4': [],
+        'ingredient-5': [],
+        'ingredient-6': []
     }
-    
-    for item in menu_items:
-        if ',' in item:
-            parts = item.split(',')
-            menu_data["name"].append(parts[0].strip())
-            ingredients = parts[1:]
-            for i in range(1, 8):
-                if i <= len(ingredients):
-                    menu_data[f"ingredient-{i}"].append(ingredients[i-1].strip())
-                else:
-                    menu_data[f"ingredient-{i}"].append(None)
-        else:
-            menu_data["name"].append(item)
-            for i in range(1, 8):
-                menu_data[f"ingredient-{i}"].append(None)
 
+    for item in menu_items:
+        parts = item.split(',')
+        name = parts[0]
+        ingredients = parts[1:]
+        
+        menu_data['name'].append(name)
+        for i in range(6):
+            if i < len(ingredients):
+                menu_data[f'ingredient-{i+1}'].append(ingredients[i].strip())
+            else:
+                menu_data[f'ingredient-{i+1}'].append(None)
+    
     return pd.DataFrame(menu_data)
 
-# Define function to compute cosine similarity
-def compute_similarity(user_cocktails, menu_df):
-    user_ingredients = ' '.join(user_cocktails)
-    
-    menu_df['combined_ingredients'] = menu_df[
-        [f'ingredient-{i}' for i in range(1, 8)]
-    ].fillna('').agg(' '.join, axis=1)
-    
-    vectorizer = CountVectorizer().fit_transform([user_ingredients] + menu_df['combined_ingredients'].tolist())
-    vectors = vectorizer.toarray()
-    
-    cosine_matrix = cosine_similarity(vectors)
-    
-    menu_df['similarity'] = cosine_matrix[0, 1:]
-    return menu_df[['name', 'similarity']].sort_values(by='similarity', ascending=False).head(3)
+def filter_dataset(dataset, liked_cocktails):
+    return dataset[dataset['name'].str.lower().isin(liked_cocktails)]
 
-# Streamlit app
+def vectorize_ingredients(data):
+    data['recipe_vector'] = data.apply(lambda row: ' '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']])), axis=1)
+    return data
+
+def get_recommendations(menu_df, liked_ingredients_vectorized):
+    count = CountVectorizer().fit_transform(menu_df['recipe_vector'])
+    cosine_sim = cosine_similarity(count, liked_ingredients_vectorized)
+    
+    menu_df['similarity'] = cosine_sim.mean(axis=1)
+    return menu_df.sort_values(by='similarity', ascending=False).head(3)
+
 st.title('The Cocktail-Experiment')
-st.write('Enter the cocktails you like and upload a picture of the menu.')
 
-cocktails_input = st.text_input('Enter cocktails you like (comma-separated):', 'mojito, margarita, moscow mule, old-fashioned, manhattan, negroni')
-uploaded_image = st.file_uploader('Upload a Picture of a Menu', type=['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'heic'])
+liked_cocktails = st.text_input('Enter Cocktails You Like (comma-separated):', 'mojito, margarita, moscow mule, old-fashioned, manhattan, negroni')
+liked_cocktails = [cocktail.strip().lower() for cocktail in liked_cocktails.split(',')]
+
+uploaded_image = st.file_uploader("Upload a Picture of a Menu", type=['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'heic', 'tif'])
 
 if st.button('Submit'):
     if uploaded_image is not None:
-        cocktails_list = [x.strip() for x in cocktails_input.split(',')]
+        image = Image.open(uploaded_image)
+        image_path = '/mnt/data/menu_image.png'
+        image.save(image_path)
         
-        # Save the uploaded image to a known location
-        image_path = os.path.join('/mnt/data', uploaded_image.name)
-        with open(image_path, "wb") as f:
-            f.write(uploaded_image.getbuffer())
+        menu_text = pytesseract.image_to_string(image)
+        st.image(image, caption='Uploaded Menu')
+        st.write("Extracted text from the menu:")
+        st.write(menu_text)
         
-        # Ensure the file was saved correctly
-        if os.path.exists(image_path):
-            parsed_menu_df = parse_menu(image_path)
-            st.write('Parsed Menu DataFrame:')
-            st.dataframe(parsed_menu_df)
-            
-            recommendations = compute_similarity(cocktails_list, parsed_menu_df)
-            
-            st.write('Top 3 recommendations based on your preferences:')
-            for index, row in recommendations.iterrows():
-                st.write(f"Menu Item: {row['name']}")
-                st.write(f"Similarity Score: {row['similarity']:.2f}")
-        else:
-            st.write("Error saving the uploaded image. Please try again.")
+        menu_items = parse_menu_text(menu_text)
+        menu_df = create_menu_dataframe(menu_items)
+        st.write("Parsed Menu DataFrame:")
+        st.write(menu_df)
+
+        filtered_cocktails = filter_dataset(space_cocktail, liked_cocktails)
+        vectorized_cocktails = vectorize_ingredients(filtered_cocktails)
+        liked_ingredients_vectorized = CountVectorizer().fit_transform(vectorized_cocktails['recipe_vector'])
+        
+        recommendations = get_recommendations(menu_df, liked_ingredients_vectorized)
+        st.write("Top 3 recommendations based on your preferences:")
+        
+        for _, row in recommendations.iterrows():
+            st.write(f"Menu Item: {row['name']}")
+            st.write(f"Recommended Drink: {row['name']}")
+            ingredients = ', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))
+            st.write(f"Ingredients: {ingredients}")
+            st.write(f"Similarity: {row['similarity']:.2f}")
     else:
-        st.write("Please upload a menu image.")
+        st.write("Please upload an image of the menu.")
+
 
 
 
