@@ -1,70 +1,38 @@
-# Ensure pip is up-to-date
-pip>=24.0
-
-# Streamlit and related packages
 streamlit>=1.25.0
-
-# Data manipulation
 pandas>=2.0.3
 numpy>=1.25.0
-
-# Machine Learning
 scikit-learn>=1.3.0
-
-# NLP
 gensim>=3.8.3
 nltk>=3.8.1
 spacy>=3.6.1
-
-# Visualization
 matplotlib>=3.8.1
 seaborn>=0.12.2
 plotly>=5.15.0
 wordcloud>=1.8.2.2
-
-# Web Scraping
 requests>=2.31.0
 beautifulsoup4>=4.12.2
 lxml>=4.9.3
-
-# Excel and Data I/O
 openpyxl>=3.1.2
 xlrd>=2.0.1
-
-# Utilities
 tqdm>=4.65.0
 pyyaml>=6.0
-
-# Testing
 pytest>=7.4.0
-
-# Jupyter Notebook
 jupyter>=1.0.0
 notebook>=7.0.0
 ipykernel>=6.24.0
-
-# Deep Learning
 transformers>=4.31.0
 torch>=2.1.0
 tensorflow>=2.14.0
 keras>=2.14.0
-
-# Web Development
 flask>=1.0.4,<2.3.0
 django>=4.2.3
 fastapi>=0.98.0
-
-# Image Processing
 opencv-python>=4.8.0.74
 Pillow>=9.5.0
 pytesseract>=0.3.10
-
-# Additional Visualization Tools
 altair>=5.0.1
 bokeh>=3.2.0
 dash>=2.11.0
-
-# Additional Utilities
 pydantic>=1.10.8
 SQLAlchemy>=2.0.20
 pytest-cov>=4.1.0
@@ -76,4 +44,4 @@ mypy>=1.5.1
 Sphinx>=7.1.0
 mkdocs>=1.6.0
 cryptography>=41.0.2
-scipy==1.9.3  # Specific version that includes triu
+scipy==1.9.3
