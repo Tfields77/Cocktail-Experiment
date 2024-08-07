@@ -101,48 +101,47 @@ def extract_text_from_image(image):
     text = pytesseract.image_to_string(image)
     return text
 
+# Filter dataset based on liked cocktails
+def filter_dataset(cocktails, liked_cocktails):
+    filtered_cocktails = cocktails[cocktails['name'].isin(liked_cocktails)]
+    return filtered_cocktails
+
 # Streamlit app layout
 st.title("The Cocktail-Experiment")
 
 # Input cocktails you like
 st.header("Enter Cocktails You Like")
-liked_cocktails = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
+liked_cocktails_input = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
 submit_cocktails = st.button(label='Submit Cocktails')
 if submit_cocktails:
-    liked_ingredients = [ingredient.strip() for cocktail in liked_cocktails.split(",") for ingredient in cocktail.split()]
-    recommendations = recommend_drinks(liked_ingredients, model, tfidf_dict, space_cocktail)
-    st.write("### Recommendations based on cocktails you like:")
-    for index, row in recommendations.iterrows():
-        st.write(f"**{row['name']}**")
-        st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-        st.write(f"Instructions: {row['instructions']}")
-        st.write(f"Similarity: {row['similarity']:.2f}")
-        st.write("---")
+    liked_cocktails = [cocktail.strip() for cocktail in liked_cocktails_input.split(",")]
+    temporary_dataset = filter_dataset(space_cocktail, liked_cocktails)
+    st.write("Temporary dataset based on your likes:")
+    st.dataframe(temporary_dataset)
 
-# Upload a picture of a menu
-st.header("Upload a Picture of a Menu")
-uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png", "bmp", "tiff", "heic"])
-if uploaded_image is not None:
-    image = Image.open(uploaded_image)
-    st.image(image, caption='Uploaded Menu', use_column_width=True)
-    menu_text = extract_text_from_image(image)
-    st.write("Extracted text from the menu:")
-    st.write(menu_text)
+    st.header("Upload a Picture of a Menu")
+    uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png", "bmp", "tiff", "heic"])
+    if uploaded_image is not None:
+        image = Image.open(uploaded_image)
+        st.image(image, caption='Uploaded Menu', use_column_width=True)
+        menu_text = extract_text_from_image(image)
+        st.write("Extracted text from the menu:")
+        st.write(menu_text)
 
-    menu_items = [item.strip() for item in menu_text.split("\n") if item]
-    st.write("Menu Items:")
-    st.write(menu_items)
+        menu_items = [item.strip() for item in menu_text.split("\n") if item]
+        st.write("Menu Items:")
+        st.write(menu_items)
 
-    if submit_cocktails and menu_items:
-        st.write("### Recommendations for the menu:")
-        for item in menu_items:
-            item_ingredients = [ingredient.strip() for ingredient in item.split()]
-            item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, space_cocktail)
-            st.write(f"### Recommendations for {item}:")
-            for index, row in item_recommendations.iterrows():
-                st.write(f"**{row['name']}**")
-                st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-                st.write(f"Instructions: {row['instructions']}")
-                st.write(f"Similarity: {row['similarity']:.2f}")
-                st.write("---")
+        if submit_cocktails and menu_items:
+            st.write("### Recommendations for the menu:")
+            for item in menu_items:
+                item_ingredients = [ingredient.strip() for ingredient in item.split()]
+                item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, temporary_dataset)
+                st.write(f"### Recommendations for {item}:")
+                for index, row in item_recommendations.iterrows():
+                    st.write(f"**{row['name']}**")
+                    st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
+                    st.write(f"Instructions: {row['instructions']}")
+                    st.write(f"Similarity: {row['similarity']:.2f}")
+                    st.write("---")
 
