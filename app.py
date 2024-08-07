@@ -1,138 +1,86 @@
-import streamlit as st
 import pandas as pd
-import numpy as np
-from gensim.models import Word2Vec
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from PIL import Image
+import streamlit as st
 import pytesseract
+from PIL import Image
 
-# Load Data
-def load_data():
-    return pd.read_csv('space_cocktail.csv')
-
-cocktails = load_data()
-
-if cocktails is not None:
-    st.write("Data loaded successfully")
-else:
-    st.error("Failed to load data")
-
-# Clean Text
-def clean_text(text):
-    if isinstance(text, str):
-        return text.strip().lower()
-    return text
-
-cocktails = cocktails.fillna('')
-space_cocktail = cocktails.applymap(lambda x: clean_text(x))
-
-# Train Word2Vec model
-@st.cache_resource
-def train_word2vec(data):
-    sentences = data.apply(lambda row: ' '.join([str(row[col]) for col in data.columns if 'ingredient' in col]).split(), axis=1)
-    model = Word2Vec(sentences, vector_size=200, window=10, min_count=1, sg=1)
-    return model
-
-model = train_word2vec(space_cocktail)
-
-# Compute TF-IDF weights
-def compute_tfidf(data):
-    ingredients = data.apply(lambda row: ' '.join([str(row[col]) for col in data.columns if 'ingredient' in col]), axis=1)
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(ingredients)
-    feature_names = vectorizer.get_feature_names_out()
-    tfidf_dict = dict(zip(feature_names, tfidf_matrix.sum(axis=0).A1))
-    return vectorizer, tfidf_dict
-
-vectorizer, tfidf_dict = compute_tfidf(space_cocktail)
-
-# Vectorize recipes with TF-IDF and Word2Vec
-def get_recipe_vector(ingredients, model, tfidf_dict, vector_size):
-    recipe_vector = np.zeros((1, vector_size))
-    count = 0
-    for ingredient in ingredients:
-        if ingredient in model.wv.key_to_index:
-            weight = tfidf_dict.get(ingredient, 1)
-            recipe_vector += model.wv[ingredient] * weight
-            count += weight
-    if count != 0:
-        recipe_vector /= count
-    # Normalize the vector
-    norm = np.linalg.norm(recipe_vector)
-    if norm != 0:
-        recipe_vector = recipe_vector / norm
-    return recipe_vector
-
-def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=3):
-    liked_vector = get_recipe_vector(liked_ingredients, model, tfidf_dict, model.vector_size)
-    data['recipe_vector'] = data.apply(lambda row: get_recipe_vector(
-        [row[col] for col in ['ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6'] if row[col] != ''], 
-        model, tfidf_dict, model.vector_size), axis=1)
+# Define your function to parse menu from image
+def parse_menu(image_path):
+    menu_text = pytesseract.image_to_string(Image.open(image_path))
+    menu_items = [item.strip() for item in menu_text.split('\n') if item.strip()]
     
-    similarities = data['recipe_vector'].apply(lambda vec: cosine_similarity(liked_vector, vec.reshape(1, -1))[0][0])
-    data['similarity'] = similarities
+    menu_data = {
+        "name": [],
+        "ingredient-1": [],
+        "ingredient-2": [],
+        "ingredient-3": [],
+        "ingredient-4": [],
+        "ingredient-5": [],
+        "ingredient-6": [],
+        "ingredient-7": []
+    }
     
-    top_recommendations = data.sort_values(by='similarity', ascending=False).head(top_n)
-    top_recommendations = top_recommendations.sample(frac=1).reset_index(drop=True)
-    
-    return top_recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'similarity']]
-
-# Extract text from image
-def extract_text_from_image(image):
-    text = pytesseract.image_to_string(image)
-    return text
-
-# Parse menu text to create DataFrame
-def parse_menu_text(menu_text):
-    menu_lines = menu_text.split("\n")
-    parsed_data = {'name': [], 'ingredient-1': [], 'ingredient-2': [], 'ingredient-3': [], 'ingredient-4': [], 'ingredient-5': [], 'ingredient-6': []}
-    
-    for line in menu_lines:
-        if line.strip() and ',' in line:
-            parts = line.split(',')
-            parsed_data['name'].append(parts[0].strip())
+    for item in menu_items:
+        if ',' in item:
+            parts = item.split(',')
+            menu_data["name"].append(parts[0].strip())
             ingredients = parts[1:]
-            for i, ingredient in enumerate(ingredients[:6]):
-                parsed_data[f'ingredient-{i+1}'].append(ingredient.strip())
-            for i in range(len(ingredients), 6):
-                parsed_data[f'ingredient-{i+1}'].append(None)
+            for i in range(1, 8):
+                if i <= len(ingredients):
+                    menu_data[f"ingredient-{i}"].append(ingredients[i-1].strip())
+                else:
+                    menu_data[f"ingredient-{i}"].append(None)
         else:
-            continue
+            menu_data["name"].append(item)
+            for i in range(1, 8):
+                menu_data[f"ingredient-{i}"].append(None)
+
+    return pd.DataFrame(menu_data)
+
+# Define function to compute cosine similarity
+def compute_similarity(user_cocktails, menu_df):
+    user_ingredients = ' '.join(user_cocktails)
     
-    return pd.DataFrame(parsed_data)
+    menu_df['combined_ingredients'] = menu_df[
+        [f'ingredient-{i}' for i in range(1, 8)]
+    ].fillna('').agg(' '.join, axis=1)
+    
+    vectorizer = CountVectorizer().fit_transform([user_ingredients] + menu_df['combined_ingredients'].tolist())
+    vectors = vectorizer.toarray()
+    
+    cosine_matrix = cosine_similarity(vectors)
+    
+    menu_df['similarity'] = cosine_matrix[0, 1:]
+    return menu_df[['name', 'similarity']].sort_values(by='similarity', ascending=False).head(3)
 
-# Streamlit app layout
-st.title("The Cocktail-Experiment")
+# Streamlit app
+st.title('The Cocktail-Experiment')
+st.write('Enter the cocktails you like and upload a picture of the menu.')
 
-st.header("Enter Cocktails You Like")
-liked_cocktails = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita, moscow mule, old-fashioned, manhattan, negroni")
-submit_cocktails = st.button(label='Submit')
-uploaded_image = st.file_uploader("Upload a Picture of a Menu", type=["jpg", "jpeg", "png", "bmp", "tiff", "heic", "tif"])
+cocktails_input = st.text_input('Enter cocktails you like (comma-separated):', 'mojito, margarita, moscow mule, old-fashioned, manhattan, negroni')
+uploaded_image = st.file_uploader('Upload a Picture of a Menu', type=['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'heic'])
 
-if submit_cocktails:
-    liked_ingredients = [ingredient.strip() for cocktail in liked_cocktails.split(",") for ingredient in cocktail.split()]
+if st.button('Submit'):
     if uploaded_image is not None:
-        image = Image.open(uploaded_image)
-        st.image(image, caption='Uploaded Menu', use_column_width=True)
-        menu_text = extract_text_from_image(image)
-        st.write("Extracted text from the menu:")
-        st.write(menu_text)
+        cocktails_list = [x.strip() for x in cocktails_input.split(',')]
         
-        parsed_menu_df = parse_menu_text(menu_text)
-        st.write("Parsed Menu DataFrame:")
-        st.write(parsed_menu_df)
+        with open("/mnt/data/menu_image.png", "wb") as f:
+            f.write(uploaded_image.getbuffer())
         
-        recommendations = recommend_drinks(liked_ingredients, model, tfidf_dict, parsed_menu_df)
-        st.write("Top 3 recommendations based on your preferences:")
+        parsed_menu_df = parse_menu("/mnt/data/menu_image.png")
+        st.write('Parsed Menu DataFrame:')
+        st.dataframe(parsed_menu_df)
+        
+        recommendations = compute_similarity(cocktails_list, parsed_menu_df)
+        
+        st.write('Top 3 recommendations based on your preferences:')
         for index, row in recommendations.iterrows():
             st.write(f"Menu Item: {row['name']}")
-            st.write(f"Recommended Drink: {row['name']}")
-            st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-            st.write(f"Similarity: {row['similarity']:.2f}")
-            st.write("---")
+            st.write(f"Similarity Score: {row['similarity']:.2f}")
     else:
-        st.write("Please upload a menu image to get recommendations.")
+        st.write("Please upload a menu image.")
+
 
 
 
