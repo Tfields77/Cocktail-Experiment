@@ -112,16 +112,19 @@ st.title("The Cocktail-Experiment")
 # Input cocktails you like
 st.header("Enter Cocktails You Like")
 liked_cocktails_input = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
-submit_cocktails = st.button(label='Submit Cocktails')
 
-if submit_cocktails:
+# Upload a picture of a menu
+st.header("Upload a Picture of a Menu")
+uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png", "bmp", "tiff", "heic"])
+
+submit = st.button(label='Submit')
+
+if submit:
     liked_cocktails = [cocktail.strip() for cocktail in liked_cocktails_input.split(",")]
     temporary_dataset = filter_dataset(space_cocktail, liked_cocktails)
     st.write("Temporary dataset based on your likes:")
     st.dataframe(temporary_dataset)
 
-    st.header("Upload a Picture of a Menu")
-    uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png", "bmp", "tiff", "heic"])
     if uploaded_image is not None:
         image = Image.open(uploaded_image)
         st.image(image, caption='Uploaded Menu', use_column_width=True)
@@ -145,3 +148,13 @@ if submit_cocktails:
                     st.write(f"Instructions: {row['instructions']}")
                     st.write(f"Similarity: {row['similarity']:.2f}")
                     st.write("---")
+    else:
+        st.write("### Recommendations based on cocktails you like:")
+        recommendations = recommend_drinks(liked_cocktails, model, tfidf_dict, space_cocktail)
+        for index, row in recommendations.iterrows():
+            st.write(f"**{row['name']}**")
+            st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
+            st.write(f"Instructions: {row['instructions']}")
+            st.write(f"Similarity: {row['similarity']:.2f}")
+            st.write("---")
+
