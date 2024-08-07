@@ -124,4 +124,25 @@ st.header("Upload a Picture of a Menu")
 uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png", "bmp", "tiff", "heic"])
 if uploaded_image is not None:
     image = Image.open(uploaded_image)
-    st.image(image, caption='
+    st.image(image, caption='Uploaded Menu', use_column_width=True)
+    menu_text = extract_text_from_image(image)
+    st.write("Extracted text from the menu:")
+    st.write(menu_text)
+
+    menu_items = [item.strip() for item in menu_text.split("\n") if item]
+    st.write("Menu Items:")
+    st.write(menu_items)
+
+    if submit_cocktails and menu_items:
+        st.write("### Recommendations for the menu:")
+        for item in menu_items:
+            item_ingredients = [ingredient.strip() for ingredient in item.split()]
+            item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, space_cocktail)
+            st.write(f"### Recommendations for {item}:")
+            for index, row in item_recommendations.iterrows():
+                st.write(f"**{row['name']}**")
+                st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
+                st.write(f"Instructions: {row['instructions']}")
+                st.write(f"Similarity: {row['similarity']:.2f}")
+                st.write("---")
+
