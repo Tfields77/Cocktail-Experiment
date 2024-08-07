@@ -6,6 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from PIL import Image
 import pytesseract
+import io
 
 # Load Data
 def load_data():
@@ -80,6 +81,31 @@ def extract_text_from_image(image):
     text = pytesseract.image_to_string(image)
     return text
 
+# Parse menu text into a DataFrame
+def parse_menu_text(menu_text):
+    lines = menu_text.split('\n')
+    menu_items = []
+    current_item = {}
+    for line in lines:
+        if line.strip() == "":
+            continue
+        if line.isupper():
+            if current_item:
+                menu_items.append(current_item)
+            current_item = {"name": line.strip(), "ingredients": ""}
+        else:
+            if "ingredients" in current_item:
+                current_item["ingredients"] += " " + line.strip()
+            else:
+                current_item["ingredients"] = line.strip()
+    if current_item:
+        menu_items.append(current_item)
+    
+    menu_df = pd.DataFrame(menu_items)
+    menu_df[['ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6']] = menu_df['ingredients'].str.split(',', expand=True)
+    menu_df.drop(columns=['ingredients'], inplace=True)
+    return menu_df
+
 # Filter dataset based on liked cocktails
 def filter_dataset(data, liked_cocktails):
     liked_cocktails = [clean_text(cocktail) for cocktail in liked_cocktails]
@@ -107,13 +133,13 @@ if submit_button:
         st.write("Extracted text from the menu:")
         st.write(menu_text)
         
-        menu_items = [item.strip() for item in menu_text.split("\n") if item]
-        st.write("Menu Items:")
-        st.write(menu_items)
+        menu_df = parse_menu_text(menu_text)
+        st.write("Parsed Menu DataFrame:")
+        st.write(menu_df)
 
         recommendations = []
-        for item in menu_items:
-            item_ingredients = [ingredient.strip() for ingredient in item.split()]
+        for _, row in menu_df.iterrows():
+            item_ingredients = row[['ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6']].dropna().tolist()
             item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, temporary_dataset)
             recommendations.extend(item_recommendations.to_dict('records'))
 
@@ -126,8 +152,6 @@ if submit_button:
                 st.write(f"Instructions: {rec['instructions']}")
                 st.write(f"Similarity: {rec['similarity']:.2f}")
                 st.write("---")
-
-
 
 
 
