@@ -160,4 +160,3 @@ if submit:
             st.write(f"Instructions: {row['instructions']}")
             st.write(f"Similarity: {row['similarity']:.2f}")
             st.write("---")
-
