@@ -1,14 +1,17 @@
-import numpy as np
+import streamlit as st
 import pandas as pd
+import numpy as np
 from gensim.models import Word2Vec
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import streamlit as st
-# Load data
-@st.cache
+from PIL import Image
+import pytesseract
+
+# Load Data
 def load_data():
-    file_path = 'space_cocktail.csv'  # Adjust the path to your CSV file
-    return pd.read_csv(file_path)
+    # Placeholder function for loading data
+    # Replace with actual data loading code
+    return pd.read_csv('path_to_your_cocktails_data.csv')
 
 cocktails = load_data()
 
@@ -17,6 +20,7 @@ if cocktails is not None:
 else:
     st.error("Failed to load data")
 
+# Clean Text
 def clean_text(text):
     if isinstance(text, str):
         return text.strip().lower()
@@ -77,74 +81,52 @@ def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=5):
     
     return top_recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'instructions', 'similarity']]
 
-# Streamlit app layout with tabs for input and recommendations
+# Extract text from image
+def extract_text_from_image(image):
+    text = pytesseract.image_to_string(image)
+    return text
+
+# Streamlit app layout
 st.title("The Cocktail-Experiment")
 
-tab1, tab2, tab3, tab4 = st.tabs(["Cocktails You Like", "Ingredients You Like", "Flavors You Like", "Drinks You're Curious About"])
+# Input cocktails you like
+st.header("Enter Cocktails You Like")
+liked_cocktails = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
+submit_cocktails = st.button(label='Submit Cocktails')
+if submit_cocktails:
+    liked_ingredients = [ingredient.strip() for cocktail in liked_cocktails.split(",") for ingredient in cocktail.split()]
+    recommendations = recommend_drinks(liked_ingredients, model, tfidf_dict, space_cocktail)
+    st.write("### Recommendations based on cocktails you like:")
+    for index, row in recommendations.iterrows():
+        st.write(f"**{row['name']}**")
+        st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
+        st.write(f"Instructions: {row['instructions']}")
+        st.write(f"Similarity: {row['similarity']:.2f}")
+        st.write("---")
 
-with tab1:
-    st.header("Cocktails You Like")
-    with st.form(key='cocktails_form'):
-        liked_cocktails = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
-        submit_cocktails = st.form_submit_button(label='Submit Cocktails')
-        if submit_cocktails:
-            st.session_state.liked_cocktails = [cocktail.strip() for cocktail in liked_cocktails.split(",")]
-            recommendations = recommend_drinks(st.session_state.liked_cocktails, model, tfidf_dict, space_cocktail)
-            st.write("### Recommendations based on cocktails you like:")
-            for index, row in recommendations.iterrows():
+# Upload a picture of a menu
+st.header("Upload a Picture of a Menu")
+uploaded_image = st.file_uploader("Choose an image...", type="jpg")
+if uploaded_image is not None:
+    image = Image.open(uploaded_image)
+    st.image(image, caption='Uploaded Menu', use_column_width=True)
+    menu_text = extract_text_from_image(image)
+    st.write("Extracted text from the menu:")
+    st.write(menu_text)
+    
+    menu_items = [item.strip() for item in menu_text.split("\n") if item]
+    st.write("Menu Items:")
+    st.write(menu_items)
+    
+    if submit_cocktails and menu_items:
+        st.write("### Recommendations for the menu:")
+        for item in menu_items:
+            item_ingredients = [ingredient.strip() for ingredient in item.split()]
+            item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, space_cocktail)
+            st.write(f"### Recommendations for {item}:")
+            for index, row in item_recommendations.iterrows():
                 st.write(f"**{row['name']}**")
-                st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
+                st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4', 'ingredient-5', 'ingredient-6']]))}")
                 st.write(f"Instructions: {row['instructions']}")
                 st.write(f"Similarity: {row['similarity']:.2f}")
                 st.write("---")
-
-with tab2:
-    st.header("Ingredients You Like")
-    with st.form(key='ingredients_form'):
-        liked_ingredients = st.text_input("Enter ingredients you like (comma-separated):", "vodka, lime, mint")
-        submit_ingredients = st.form_submit_button(label='Submit Ingredients')
-        if submit_ingredients:
-            st.session_state.liked_ingredients = [ingredient.strip() for ingredient in liked_ingredients.split(",")]
-            recommendations = recommend_drinks(st.session_state.liked_ingredients, model, tfidf_dict, space_cocktail)
-            st.write("### Recommendations based on ingredients you like:")
-            for index, row in recommendations.iterrows():
-                st.write(f"**{row['name']}**")
-                st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-                st.write(f"Instructions: {row['instructions']}")
-                st.write(f"Similarity: {row['similarity']:.2f}")
-                st.write("---")
-
-with tab3:
-    st.header("Flavors You Like")
-    with st.form(key='flavors_form'):
-        liked_flavors = st.text_input("Enter flavors you like (comma-separated):", "sweet, sour, spicy")
-        submit_flavors = st.form_submit_button(label='Submit Flavors')
-        if submit_flavors:
-            st.session_state.liked_flavors = [flavor.strip() for flavor in liked_flavors.split(",")]
-            recommendations = recommend_drinks(st.session_state.liked_flavors, model, tfidf_dict, space_cocktail)
-            st.write("### Recommendations based on flavors you like:")
-            for index, row in recommendations.iterrows():
-                st.write(f"**{row['name']}**")
-                st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-                st.write(f"Instructions: {row['instructions']}")
-                st.write(f"Similarity: {row['similarity']:.2f}")
-                st.write("---")
-
-with tab4:
-    st.header("Drinks You're Curious About")
-    with st.form(key='curious_drinks_form'):
-        liked_cocktails = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
-        curious_drinks_input = st.text_area("Enter ingredients for drinks you're curious about, one line per drink. Put commas after each ingredient:")
-        submit_curious_drinks = st.form_submit_button(label='Submit Curious Drinks')
-        if submit_curious_drinks:
-            st.session_state.liked_cocktails = [cocktail.strip() for cocktail in liked_cocktails.split(",")]
-            st.session_state.curious_drinks = [line.split(",") for line in curious_drinks_input.split("\n") if line]
-            for drink_ingredients in st.session_state.curious_drinks:
-                drink_recommendations = recommend_drinks(drink_ingredients, model, tfidf_dict, space_cocktail)
-                st.write(f"### Recommendations for drink with ingredients: {', '.join(drink_ingredients)}")
-                for index, row in drink_recommendations.iterrows():
-                    st.write(f"**{row['name']}**")
-                    st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-                    st.write(f"Instructions: {row['instructions']}")
-                    st.write(f"Similarity: {row['similarity']:.2f}")
-                    st.write("---")
