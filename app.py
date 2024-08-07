@@ -80,6 +80,12 @@ def extract_text_from_image(image):
     text = pytesseract.image_to_string(image)
     return text
 
+# Filter dataset based on liked cocktails
+def filter_dataset(data, liked_cocktails):
+    liked_cocktails = [clean_text(cocktail) for cocktail in liked_cocktails]
+    filtered_data = data[data['name'].apply(lambda x: clean_text(x) in liked_cocktails)]
+    return filtered_data
+
 # Streamlit app layout
 st.title("The Cocktail-Experiment")
 
@@ -90,7 +96,7 @@ submit_button = st.button(label='Submit')
 
 if submit_button:
     liked_ingredients = [ingredient.strip() for cocktail in liked_cocktails.split(",") for ingredient in cocktail.split()]
-    temporary_dataset = filter_dataset(cocktails, liked_cocktails)
+    temporary_dataset = filter_dataset(space_cocktail, liked_cocktails.split(","))
     st.write("Temporary dataset based on your likes:")
     st.write(temporary_dataset)
 
@@ -108,7 +114,7 @@ if submit_button:
         recommendations = []
         for item in menu_items:
             item_ingredients = [ingredient.strip() for ingredient in item.split()]
-            item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, space_cocktail)
+            item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, temporary_dataset)
             recommendations.extend(item_recommendations.to_dict('records'))
 
         if recommendations:
