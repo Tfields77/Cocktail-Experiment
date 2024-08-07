@@ -6,12 +6,17 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from PIL import Image
 import pytesseract
+import os
+
+# Set the path for the Tesseract executable
+if os.name == 'nt':
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+else:
+    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
 
 # Load Data
 def load_data():
-    # Placeholder function for loading data
-    # Replace with actual data loading code
-    return pd.read_csv('path_to_your_cocktails_data.csv')
+    return pd.read_csv('space_cocktail.csv')
 
 cocktails = load_data()
 
@@ -33,7 +38,7 @@ space_cocktail = cocktails.applymap(lambda x: clean_text(x))
 @st.cache_resource
 def train_word2vec(data):
     sentences = data.apply(lambda row: ' '.join([str(row[col]) for col in data.columns if 'ingredient' in col]).split(), axis=1)
-    model = Word2Vec(sentences, vector_size=200, window=10, min_count=1, sg=1)  # Adjusted parameters
+    model = Word2Vec(sentences, vector_size=200, window=10, min_count=1, sg=1)
     return model
 
 model = train_word2vec(space_cocktail)
@@ -71,14 +76,13 @@ def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=5):
     data['recipe_vector'] = data.apply(lambda row: get_recipe_vector(
         [row[col] for col in ['ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6'] if row[col] != ''], 
         model, tfidf_dict, model.vector_size), axis=1)
-    
+
     similarities = data['recipe_vector'].apply(lambda vec: cosine_similarity(liked_vector, vec.reshape(1, -1))[0][0])
     data['similarity'] = similarities
-    
-    # Get top_n similar drinks and shuffle the results
+
     top_recommendations = data.sort_values(by='similarity', ascending=False).head(top_n)
     top_recommendations = top_recommendations.sample(frac=1).reset_index(drop=True)
-    
+
     return top_recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'instructions', 'similarity']]
 
 # Extract text from image
@@ -113,11 +117,11 @@ if uploaded_image is not None:
     menu_text = extract_text_from_image(image)
     st.write("Extracted text from the menu:")
     st.write(menu_text)
-    
+
     menu_items = [item.strip() for item in menu_text.split("\n") if item]
     st.write("Menu Items:")
     st.write(menu_items)
-    
+
     if submit_cocktails and menu_items:
         st.write("### Recommendations for the menu:")
         for item in menu_items:
