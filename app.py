@@ -82,8 +82,6 @@ def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=3):
     data['similarity'] = similarities
 
     top_recommendations = data.sort_values(by='similarity', ascending=False).head(top_n)
-    top_recommendations = top_recommendations.sample(frac=1).reset_index(drop=True)
-
     return top_recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'instructions', 'similarity']]
 
 # Extract text from image
@@ -140,14 +138,27 @@ if submit:
                 menu_ingredients.append((item_name, item_ingredients))
 
         st.write("### Top 3 recommendations based on your preferences:")
+        recommendations = []
         for item_name, item_ingredients in menu_ingredients:
             item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, temporary_dataset, top_n=3)
-            st.write(f"#### {item_name}:")
             for index, row in item_recommendations.iterrows():
-                st.write(f"**{row['name']}**")
-                st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-                st.write(f"Instructions: {row['instructions']}")
-                st.write(f"Similarity: {row['similarity']:.2f}")
-                st.write("---")
+                recommendations.append({
+                    'menu_item': item_name,
+                    'recommendation': row['name'],
+                    'ingredients': ', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']])),
+                    'instructions': row['instructions'],
+                    'similarity': row['similarity']
+                })
+
+        sorted_recommendations = sorted(recommendations, key=lambda x: x['similarity'], reverse=True)[:3]
+        
+        for rec in sorted_recommendations:
+            st.write(f"**Menu Item: {rec['menu_item']}**")
+            st.write(f"**Recommended Drink: {rec['recommendation']}**")
+            st.write(f"Ingredients: {rec['ingredients']}")
+            st.write(f"Instructions: {rec['instructions']}")
+            st.write(f"Similarity: {rec['similarity']:.2f}")
+            st.write("---")
+
 
 
