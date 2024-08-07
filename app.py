@@ -132,7 +132,7 @@ if submit_cocktails:
         st.write("Menu Items:")
         st.write(menu_items)
 
-        if submit_cocktails and menu_items:
+        if menu_items:
             st.write("### Recommendations for the menu:")
             for item in menu_items:
                 item_ingredients = [ingredient.strip() for ingredient in item.split()]
@@ -144,4 +144,3 @@ if submit_cocktails:
                     st.write(f"Instructions: {row['instructions']}")
                     st.write(f"Similarity: {row['similarity']:.2f}")
                     st.write("---")
-
