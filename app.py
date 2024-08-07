@@ -72,7 +72,7 @@ def get_recipe_vector(ingredients, model, tfidf_dict, vector_size):
         recipe_vector = recipe_vector / norm
     return recipe_vector
 
-def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=5):
+def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=3):
     liked_vector = get_recipe_vector(liked_ingredients, model, tfidf_dict, model.vector_size)
     data['recipe_vector'] = data.apply(lambda row: get_recipe_vector(
         [row[col] for col in ['ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6'] if row[col] != ''], 
@@ -139,9 +139,9 @@ if submit:
         if menu_items:
             st.write("### Recommendations for the menu:")
             for item in menu_items:
-                item_ingredients = [ingredient.strip() for ingredient in item.split()]
+                item_name, item_ingredients = item.split(":")[0], item.split(":")[1].split(", ")
+                st.write(f"### Recommendations for {item_name}:")
                 item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, temporary_dataset)
-                st.write(f"### Recommendations for {item}:")
                 for index, row in item_recommendations.iterrows():
                     st.write(f"**{row['name']}**")
                     st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
