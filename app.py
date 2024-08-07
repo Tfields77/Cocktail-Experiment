@@ -132,6 +132,7 @@ if submit:
         st.write("Extracted text from the menu:")
         st.write(menu_text)
 
+        # Split menu items by newline and remove empty lines
         menu_items = [item.strip() for item in menu_text.split("\n") if item]
         st.write("Menu Items:")
         st.write(menu_items)
@@ -139,15 +140,21 @@ if submit:
         if menu_items:
             st.write("### Recommendations for the menu:")
             for item in menu_items:
-                item_name, item_ingredients = item.split(":")[0], item.split(":")[1].split(", ")
-                st.write(f"### Recommendations for {item_name}:")
-                item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, temporary_dataset)
-                for index, row in item_recommendations.iterrows():
-                    st.write(f"**{row['name']}**")
-                    st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-                    st.write(f"Instructions: {row['instructions']}")
-                    st.write(f"Similarity: {row['similarity']:.2f}")
-                    st.write("---")
+                # Split each item into name and ingredients
+                parts = item.split(":")
+                if len(parts) >= 2:
+                    item_name = parts[0].strip()
+                    item_ingredients = parts[1].strip().split(", ")
+                    st.write(f"### Recommendations for {item_name}:")
+                    item_recommendations = recommend_drinks(item_ingredients, model, tfidf_dict, temporary_dataset)
+                    for index, row in item_recommendations.iterrows():
+                        st.write(f"**{row['name']}**")
+                        st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
+                        st.write(f"Instructions: {row['instructions']}")
+                        st.write(f"Similarity: {row['similarity']:.2f}")
+                        st.write("---")
+                else:
+                    st.write(f"Skipping invalid menu item: {item}")
     else:
         st.write("### Recommendations based on cocktails you like:")
         recommendations = recommend_drinks(liked_cocktails, model, tfidf_dict, space_cocktail)
@@ -157,4 +164,3 @@ if submit:
             st.write(f"Instructions: {row['instructions']}")
             st.write(f"Similarity: {row['similarity']:.2f}")
             st.write("---")
-
