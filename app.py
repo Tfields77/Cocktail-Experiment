@@ -7,6 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from PIL import Image
 import pytesseract
 import os
+import pyheif
 
 # Set the path for the Tesseract executable
 if os.name == 'nt':
@@ -87,6 +88,16 @@ def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=5):
 
 # Extract text from image
 def extract_text_from_image(image):
+    if image.format == "HEIC":
+        heif_file = pyheif.read(image)
+        image = Image.frombytes(
+            heif_file.mode, 
+            heif_file.size, 
+            heif_file.data,
+            "raw",
+            heif_file.mode,
+            heif_file.stride,
+        )
     text = pytesseract.image_to_string(image)
     return text
 
@@ -110,7 +121,7 @@ if submit_cocktails:
 
 # Upload a picture of a menu
 st.header("Upload a Picture of a Menu")
-uploaded_image = st.file_uploader("Choose an image...", type="jpg")
+uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png", "bmp", "tiff", "heic"])
 if uploaded_image is not None:
     image = Image.open(uploaded_image)
     st.image(image, caption='Uploaded Menu', use_column_width=True)
