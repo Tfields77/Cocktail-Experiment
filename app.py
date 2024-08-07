@@ -99,17 +99,12 @@ def extract_text_from_image(image):
     text = pytesseract.image_to_string(image)
     return text
 
-# Filter dataset based on liked cocktails
-def filter_dataset(cocktails, liked_cocktails):
-    filtered_cocktails = cocktails[cocktails['name'].isin(liked_cocktails)]
-    return filtered_cocktails
-
 # Streamlit app layout
 st.title("The Cocktail-Experiment")
 
 # Input cocktails you like
 st.header("Enter Cocktails You Like")
-liked_cocktails_input = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita")
+liked_cocktails_input = st.text_input("Enter cocktails you like (comma-separated):", "mojito, margarita, moscow mule, old-fashioned, manhattan, negroni")
 
 # Upload a picture of a menu
 st.header("Upload a Picture of a Menu")
@@ -126,15 +121,30 @@ if submit:
         st.image(image, caption='Uploaded Menu', use_column_width=True)
         menu_text = extract_text_from_image(image)
         st.write("Extracted text from the menu:")
-        
+
         # Split menu items by newline and remove empty lines
         menu_items = [item.strip() for item in menu_text.split("\n") if item]
         
+        # Parse menu items and their ingredients
+        parsed_menu_items = []
+        current_item = ""
+        for item in menu_items:
+            if item.isupper() and len(item.split()) <= 4:
+                if current_item:
+                    parsed_menu_items.append(current_item)
+                current_item = item
+            else:
+                current_item += " " + item
+        if current_item:
+            parsed_menu_items.append(current_item)
+
+        # Extract cocktail names and ingredients
         menu_ingredients = []
-        for i in range(0, len(menu_items), 2):
-            if i + 1 < len(menu_items):
-                item_name = menu_items[i].strip()
-                item_ingredients = menu_items[i + 1].strip().split(", ")
+        for item in parsed_menu_items:
+            parts = item.split(":")
+            if len(parts) > 1:
+                item_name = parts[0].strip()
+                item_ingredients = parts[1].strip().split(", ")
                 menu_ingredients.append((item_name, item_ingredients))
 
         st.write("### Top 3 recommendations based on your preferences:")
