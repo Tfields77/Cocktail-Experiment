@@ -76,7 +76,7 @@ def recommend_drinks(liked_ingredients, model, tfidf_dict, data, top_n=3):
     top_recommendations = data.sort_values(by='similarity', ascending=False).head(top_n)
     top_recommendations = top_recommendations.sample(frac=1).reset_index(drop=True)
     
-    return top_recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'instructions', 'similarity']]
+    return top_recommendations[['name', 'ingredient-1', 'ingredient-2', 'ingredient-3', 'ingredient-4', 'ingredient-5', 'ingredient-6', 'similarity']]
 
 # Extract text from image
 def extract_text_from_image(image):
@@ -89,7 +89,7 @@ def parse_menu_text(menu_text):
     parsed_data = {'name': [], 'ingredient-1': [], 'ingredient-2': [], 'ingredient-3': [], 'ingredient-4': [], 'ingredient-5': [], 'ingredient-6': []}
     
     for line in menu_lines:
-        if line.strip() and len(line.split(',')) > 1:
+        if line.strip() and ',' in line:
             parts = line.split(',')
             parsed_data['name'].append(parts[0].strip())
             ingredients = parts[1:]
@@ -129,7 +129,6 @@ if submit_cocktails:
             st.write(f"Menu Item: {row['name']}")
             st.write(f"Recommended Drink: {row['name']}")
             st.write(f"Ingredients: {', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))}")
-            st.write(f"Instructions: {row['instructions']}")
             st.write(f"Similarity: {row['similarity']:.2f}")
             st.write("---")
     else:
