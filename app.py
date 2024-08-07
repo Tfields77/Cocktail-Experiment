@@ -65,10 +65,11 @@ if st.button('Submit'):
     if uploaded_image is not None:
         cocktails_list = [x.strip() for x in cocktails_input.split(',')]
         
-        with open("/mnt/data/menu_image.png", "wb") as f:
+        image_path = f"/mnt/data/{uploaded_image.name}"
+        with open(image_path, "wb") as f:
             f.write(uploaded_image.getbuffer())
         
-        parsed_menu_df = parse_menu("/mnt/data/menu_image.png")
+        parsed_menu_df = parse_menu(image_path)
         st.write('Parsed Menu DataFrame:')
         st.dataframe(parsed_menu_df)
         
