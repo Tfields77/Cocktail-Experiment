@@ -4,6 +4,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import streamlit as st
 import pytesseract
 from PIL import Image
+import os
 
 # Define your function to parse menu from image
 def parse_menu(image_path):
@@ -65,20 +66,25 @@ if st.button('Submit'):
     if uploaded_image is not None:
         cocktails_list = [x.strip() for x in cocktails_input.split(',')]
         
-        image_path = f"/mnt/data/{uploaded_image.name}"
+        # Save the uploaded image to a known location
+        image_path = os.path.join('/mnt/data', uploaded_image.name)
         with open(image_path, "wb") as f:
             f.write(uploaded_image.getbuffer())
         
-        parsed_menu_df = parse_menu(image_path)
-        st.write('Parsed Menu DataFrame:')
-        st.dataframe(parsed_menu_df)
-        
-        recommendations = compute_similarity(cocktails_list, parsed_menu_df)
-        
-        st.write('Top 3 recommendations based on your preferences:')
-        for index, row in recommendations.iterrows():
-            st.write(f"Menu Item: {row['name']}")
-            st.write(f"Similarity Score: {row['similarity']:.2f}")
+        # Ensure the file was saved correctly
+        if os.path.exists(image_path):
+            parsed_menu_df = parse_menu(image_path)
+            st.write('Parsed Menu DataFrame:')
+            st.dataframe(parsed_menu_df)
+            
+            recommendations = compute_similarity(cocktails_list, parsed_menu_df)
+            
+            st.write('Top 3 recommendations based on your preferences:')
+            for index, row in recommendations.iterrows():
+                st.write(f"Menu Item: {row['name']}")
+                st.write(f"Similarity Score: {row['similarity']:.2f}")
+        else:
+            st.write("Error saving the uploaded image. Please try again.")
     else:
         st.write("Please upload a menu image.")
 
