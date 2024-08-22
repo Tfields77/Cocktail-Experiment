@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
 
 # Load the cocktail dataset
-space_cocktail = pd.read_csv('/mnt/data/space_cocktail.csv')
+space_cocktail = pd.read_csv('space_cocktail.csv')
 
 def parse_menu_text(menu_text):
     menu_items = []
