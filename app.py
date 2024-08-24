@@ -8,6 +8,10 @@ from sklearn.feature_extraction.text import CountVectorizer
 # Load the cocktail dataset
 space_cocktail = pd.read_csv('space_cocktail.csv')
 
+# Initialize a session state to keep track of recommended drinks
+if 'recommended_drinks' not in st.session_state:
+    st.session_state['recommended_drinks'] = []
+
 def parse_menu_text(menu_text):
     menu_items = []
     for item in menu_text.split('\n'):
@@ -41,9 +45,6 @@ def create_menu_dataframe(menu_items):
     
     return pd.DataFrame(menu_data)
 
-def filter_dataset(dataset, liked_cocktails):
-    return dataset[dataset['name'].str.lower().isin(liked_cocktails)]
-
 def vectorize_ingredients(data):
     data['recipe_vector'] = data.apply(lambda row: ' '.join([str(ingredient) for ingredient in filter(None, [
         row['ingredient-1'], row['ingredient-2'], row['ingredient-3'],
@@ -51,17 +52,39 @@ def vectorize_ingredients(data):
     ])]), axis=1)
     return data
 
-def get_recommendations(menu_df, liked_ingredients_vectorized):
-    count = CountVectorizer().fit_transform(menu_df['recipe_vector'])
-    cosine_sim = cosine_similarity(count, liked_ingredients_vectorized)
+def get_recommendations(input_ingredients, dataset):
+    # Remove already recommended drinks
+    dataset = dataset[~dataset['name'].isin(st.session_state['recommended_drinks'])]
     
-    menu_df['similarity'] = cosine_sim.mean(axis=1)
-    return menu_df.sort_values(by='similarity', ascending=False).head(3)
+    if dataset.empty:
+        st.warning("No new drinks to recommend based on the current session.")
+        return pd.DataFrame()  # Return an empty DataFrame if all drinks have been recommended
+    
+    # Vectorize the entire dataset and the input ingredients
+    vectorizer = CountVectorizer()
+    vectorized_data = vectorizer.fit_transform(dataset['recipe_vector'])
+    
+    # Vectorize the input ingredients (converting the list to a single string)
+    input_vector = vectorizer.transform([' '.join(input_ingredients)])
+    
+    # Compute cosine similarity
+    cosine_sim = cosine_similarity(vectorized_data, input_vector)
+    
+    # Add similarity scores to the dataset
+    dataset['similarity'] = cosine_sim.flatten()
+    
+    # Sort by similarity and get top 3 recommendations
+    recommendations = dataset.sort_values(by='similarity', ascending=False).head(3)
+    
+    # Update session state with the recommended drinks
+    st.session_state['recommended_drinks'].extend(recommendations['name'].tolist())
+    
+    return recommendations
 
 st.title('The Cocktail-Experiment')
 
-liked_cocktails = st.text_input('Enter Cocktails You Like (comma-separated):', 'mojito, margarita, moscow mule, old-fashioned, manhattan, negroni')
-liked_cocktails = [cocktail.strip().lower() for cocktail in liked_cocktails.split(',')]
+liked_ingredients_input = st.text_input('Enter Ingredients You Like (comma-separated):', 'lime, mint, rum')
+liked_ingredients = [ingredient.strip().lower() for ingredient in liked_ingredients_input.split(',')]
 
 uploaded_image = st.file_uploader("Upload a Picture of a Menu", type=['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'heic', 'tif'])
 
@@ -82,27 +105,28 @@ if st.button('Submit'):
                 st.write("Parsed Menu DataFrame:")
                 st.write(menu_df)
 
-                filtered_cocktails = filter_dataset(space_cocktail, liked_cocktails)
-                vectorized_cocktails = vectorize_ingredients(filtered_cocktails)
-                liked_ingredients_vectorized = CountVectorizer().fit_transform(vectorized_cocktails['recipe_vector'])
+                # Vectorize ingredients in the dataset
+                vectorized_cocktails = vectorize_ingredients(space_cocktail)
                 
-                recommendations = get_recommendations(menu_df, liked_ingredients_vectorized)
+                # Get recommendations based on the input ingredients
+                recommendations = get_recommendations(liked_ingredients, vectorized_cocktails)
         except Exception as e:
             st.error(f"An error occurred: {e}")
     else:
-        # If no image is uploaded, just use the liked_cocktails for recommendations
-        filtered_cocktails = filter_dataset(space_cocktail, liked_cocktails)
-        vectorized_cocktails = vectorize_ingredients(filtered_cocktails)
-        recommendations = filtered_cocktails.head(3)
+        # If no image is uploaded, recommend based on the liked ingredients
+        vectorized_cocktails = vectorize_ingredients(space_cocktail)
+        recommendations = get_recommendations(liked_ingredients, vectorized_cocktails)
 
-    st.write("Top 3 recommendations based on your preferences:")
-    for _, row in recommendations.iterrows():
-        st.write(f"Menu Item: {row['name']}")
-        ingredients = ', '.join([str(ingredient) for ingredient in filter(None, [
-            row['ingredient-1'], row['ingredient-2'], row['ingredient-3'],
-            row['ingredient-4'], row['ingredient-5'], row['ingredient-6']
-        ])])
-        st.write(f"Ingredients: {ingredients}")
+    if not recommendations.empty:
+        st.write("Top 3 recommendations based on your preferences:")
+        for _, row in recommendations.iterrows():
+            st.write(f"Recommended Drink: {row['name']}")
+            ingredients = ', '.join([str(ingredient) for ingredient in filter(None, [
+                row['ingredient-1'], row['ingredient-2'], row['ingredient-3'],
+                row['ingredient-4'], row['ingredient-5'], row['ingredient-6']
+            ])])
+            st.write(f"Ingredients: {ingredients}")
+            st.write(f"Similarity: {row['similarity']:.2f}")
 
 
 
