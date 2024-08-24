@@ -66,8 +66,6 @@ uploaded_image = st.file_uploader("Upload a Picture of a Menu", type=['jpg', 'jp
 if st.button('Submit'):
     if uploaded_image is not None:
         image = Image.open(uploaded_image)
-        image_path = '/mnt/data/menu_image.png'
-        image.save(image_path)
         
         menu_text = pytesseract.image_to_string(image)
         st.image(image, caption='Uploaded Menu')
@@ -84,16 +82,18 @@ if st.button('Submit'):
         liked_ingredients_vectorized = CountVectorizer().fit_transform(vectorized_cocktails['recipe_vector'])
         
         recommendations = get_recommendations(menu_df, liked_ingredients_vectorized)
-        st.write("Top 3 recommendations based on your preferences:")
-        
-        for _, row in recommendations.iterrows():
-            st.write(f"Menu Item: {row['name']}")
-            st.write(f"Recommended Drink: {row['name']}")
-            ingredients = ', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))
-            st.write(f"Ingredients: {ingredients}")
-            st.write(f"Similarity: {row['similarity']:.2f}")
     else:
-        st.write("Please upload an image of the menu.")
+        # If no image is uploaded, just use the liked_cocktails for recommendations
+        filtered_cocktails = filter_dataset(space_cocktail, liked_cocktails)
+        vectorized_cocktails = vectorize_ingredients(filtered_cocktails)
+        recommendations = filtered_cocktails.head(3)
+
+    st.write("Top 3 recommendations based on your preferences:")
+    for _, row in recommendations.iterrows():
+        st.write(f"Menu Item: {row['name']}")
+        ingredients = ', '.join(filter(None, [row['ingredient-1'], row['ingredient-2'], row['ingredient-3'], row['ingredient-4'], row['ingredient-5'], row['ingredient-6']]))
+        st.write(f"Ingredients: {ingredients}")
+
 
 
 
