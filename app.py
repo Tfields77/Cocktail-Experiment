@@ -15,7 +15,7 @@ def vectorize_ingredients(data):
     data['recipe_vector'] = data.apply(lambda row: ' '.join([str(ingredient) for ingredient in filter(None, [
         row['ingredient-1'], row['ingredient-2'], row['ingredient-3'],
         row['ingredient-4'], row['ingredient-5'], row['ingredient-6']
-    ])]), axis=1)
+    ])]).replace('nan', ''), axis=1)  # Replace 'nan' with an empty string
     return data
 
 def get_recommendations(liked_cocktails, dataset):
@@ -75,11 +75,11 @@ if st.button('Get Recommendations'):
     if not recommendations.empty:
         st.write("Top 3 recommendations based on your preferences:")
         for _, row in recommendations.iterrows():
-            st.write(f"Recommended Drink: {row['name']}")
             ingredients = ', '.join([str(ingredient) for ingredient in filter(None, [
                 row['ingredient-1'], row['ingredient-2'], row['ingredient-3'],
                 row['ingredient-4'], row['ingredient-5'], row['ingredient-6']
-            ])])
+            ])]).replace('nan', '')  # Replace 'nan' with an empty string
+            st.write(f"Recommended Drink: {row['name']}")
             st.write(f"Ingredients: {ingredients}")
             st.write(f"Similarity: {row['similarity']:.2f}")
 
