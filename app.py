@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
 
@@ -38,8 +39,11 @@ def get_recommendations(liked_cocktails, dataset):
     
     liked_vector = vectorizer.transform(liked_cocktails_df['recipe_vector'])
     
+    # Convert the liked_vector to a numpy array
+    liked_vector = np.asarray(liked_vector.mean(axis=0)).flatten()
+    
     # Compute cosine similarity
-    cosine_sim = cosine_similarity(vectorized_data, liked_vector.mean(axis=0))
+    cosine_sim = cosine_similarity(vectorized_data, [liked_vector])
     
     # Add similarity scores to the dataset
     dataset['similarity'] = cosine_sim.flatten()
@@ -74,7 +78,6 @@ if st.button('Get Recommendations'):
             ])])
             st.write(f"Ingredients: {ingredients}")
             st.write(f"Similarity: {row['similarity']:.2f}")
-
 
 
 
