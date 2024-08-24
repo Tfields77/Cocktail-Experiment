@@ -19,8 +19,11 @@ def vectorize_ingredients(data):
     return data
 
 def get_recommendations(liked_cocktails, dataset):
+    # Convert to lowercase and strip any extra spaces for comparison
+    liked_cocktails = [cocktail.lower().strip() for cocktail in liked_cocktails]
+    
     # Remove already recommended drinks and liked cocktails
-    dataset = dataset[~dataset['name'].isin(st.session_state['recommended_drinks'])]
+    dataset = dataset[~dataset['name'].str.lower().isin(st.session_state['recommended_drinks'])]
     dataset = dataset[~dataset['name'].str.lower().isin(liked_cocktails)]
     
     if dataset.empty:
@@ -28,7 +31,7 @@ def get_recommendations(liked_cocktails, dataset):
         return pd.DataFrame()  # Return an empty DataFrame if all drinks have been recommended
     
     # Filter the dataset to only include the cocktails the user likes
-    liked_cocktails_df = dataset[dataset['name'].str.lower().isin(liked_cocktails)]
+    liked_cocktails_df = space_cocktail[space_cocktail['name'].str.lower().isin(liked_cocktails)]
     
     if liked_cocktails_df.empty:
         st.warning("None of the liked cocktails are in the dataset.")
