@@ -19,8 +19,9 @@ def vectorize_ingredients(data):
     return data
 
 def get_recommendations(liked_cocktails, dataset):
-    # Remove already recommended drinks
+    # Remove already recommended drinks and liked cocktails
     dataset = dataset[~dataset['name'].isin(st.session_state['recommended_drinks'])]
+    dataset = dataset[~dataset['name'].str.lower().isin(liked_cocktails)]
     
     if dataset.empty:
         st.warning("No new drinks to recommend based on the current session.")
